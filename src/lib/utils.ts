@@ -3,10 +3,12 @@ import { Event } from "@/types/api.type";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+// Tailwind util
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Extract yes/no price
 export function extractMarketPrices(events: Event[]): MarketPrices {
   const marketPrices: MarketPrices = {};
 

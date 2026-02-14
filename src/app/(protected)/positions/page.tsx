@@ -80,6 +80,7 @@ export default function Positions() {
     updatePositionPrices(extractMarketPrices(events));
   }, [events]);
 
+  // Empty state when user has no positions yet. Encourages them to explore the dashboard and start trading to see their positions here.
   if (groupedPositions.length === 0)
     return (
       <div className="min-h-screen bg-background">

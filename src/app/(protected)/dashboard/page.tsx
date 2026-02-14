@@ -27,6 +27,7 @@ export default function Dashboard() {
     isError,
   } = useEvents();
 
+  // On buy button click
   const handleTradeClick = (
     event: Event,
     market: Market,
@@ -37,6 +38,7 @@ export default function Dashboard() {
     setTradeModalOpen(true);
   };
 
+  //On modal close
   const handleCloseModal = () => {
     setTradeModalOpen(false);
     setSelectedMarket(null);

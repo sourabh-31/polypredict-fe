@@ -10,7 +10,7 @@ const handler = NextAuth({
   ],
   callbacks: {
     async session({ session, token }) {
-      // Add user id to session if needed
+      // Add user id to session
       if (session.user) {
         session.user.id = token.sub!;
       }

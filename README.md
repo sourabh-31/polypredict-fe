@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧠 PolyPredict – Prediction Market Simulator
 
-## Getting Started
+A modern prediction market simulation platform built with **Next.js (App Router)** featuring virtual trading, wallet management, live price updates, and persistent state handling.
 
-First, run the development server:
+This project focuses on scalable frontend architecture, clean UI, and production-level patterns.
+
+---
+
+## 🚀 Tech Stack
+
+### Frontend
+
+- **Next.js (App Router)**
+- **React 18**
+- **TypeScript**
+- **Tailwind CSS**
+- **shadcn/ui**
+- **Lucide Icons**
+
+### State Management
+
+- **Zustand**
+  - Wallet management
+  - Position tracking
+  - Profit & Loss calculation
+  - Local persistence (user-based storage)
+
+### API Handling
+
+- **Next.js Route Handlers (`route.ts`)**
+- Server-side proxy pattern for third-party API integration
+
+---
+
+## 🏗 Architecture Highlights
+
+- App Router structure (`app/`)
+- Server-side API proxying
+- Client hydration control (`hasHydrated`)
+- Weighted average buy logic
+- Persistent wallet per user (guest & logged-in isolation)
+
+---
+
+## ⚙️ Getting Started
+
+Install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run the server:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🌐 CORS Issue & How It Was Solved
 
-## Learn More
+### ❌ The Problem
 
-To learn more about Next.js, take a look at the following resources:
+While integrating the external prediction API, direct browser requests were blocked due to **CORS (Cross-Origin Resource Sharing)** restrictions.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Example of the failing request:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```ts
+fetch("https://external-api.com/events");
+```
 
-## Deploy on Vercel
+The browser rejected this request because:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- The external API did not include the required `Access-Control-Allow-Origin` headers
+- Browsers enforce CORS policies to prevent cross-origin security risks
+- Client-side applications cannot bypass these restrictions
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This resulted in a CORS error in the browser console and blocked access to the data.
+
+---
+
+### ✅ The Solution – Server-Side Proxy Using `route.ts`
+
+To resolve the issue, I implemented a **server-side proxy** using Next.js App Router Route Handlers.
+
+Instead of calling the external API directly from the frontend, I created:
+
+```
+app/api/events/route.ts
+```
+
+```ts
+export async function GET() {
+  const res = await fetch("https://external-api.com/events");
+  const data = await res.json();
+
+  return Response.json(data);
+}
+```
+
+Now the frontend calls:
+
+```ts
+fetch("/api/events");
+```
+
+---
+
+### 🚀 Why This Works
+
+- The browser communicates only with its own origin (`/api/events`)
+- The Next.js server performs the external API request
+- Server-to-server requests are not restricted by browser CORS policies
+- Sensitive API keys (if needed) remain secure on the server
+
+This approach follows a **production-grade architecture pattern** commonly used when integrating third-party APIs in modern web applications.
