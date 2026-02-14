@@ -7,6 +7,11 @@ export type Market = {
   volume: number;
 };
 
+// Custom type extending market to have selected side for preselecting the button in the modal
+export type MarketWithSide = Market & {
+  selectedSide: "Yes" | "No";
+};
+
 export type Event = {
   id: string;
   title: string;

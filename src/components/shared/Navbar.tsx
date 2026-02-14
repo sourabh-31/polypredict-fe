@@ -22,26 +22,26 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/store/themeStore";
+import { INITIAL_BALANCE, useWalletStore } from "@/store/walletStore";
+import { useSession, signOut } from "next-auth/react";
+import { Skeleton } from "../ui/skeleton";
 
 export default function Navbar() {
   const pathname = usePathname();
 
+  const { data: session, status } = useSession();
+
   const { isDark, toggleTheme } = useTheme();
 
-  const INITIAL_BALANCE = 1000;
-  const balance = INITIAL_BALANCE;
-
-  const user = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    picture: "https://i.pravatar.cc/150?img=3",
-  };
+  const balance = useWalletStore((state) => state.balance);
+  const resetWallet = useWalletStore((state) => state.resetWallet);
 
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/positions", label: "Positions", icon: Briefcase },
   ];
 
+  // Get initials from name for avatar fallback
   const getInitials = (name: string) => {
     if (!name) return "U";
     return name
@@ -113,24 +113,31 @@ export default function Navbar() {
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full cursor-pointer"
-                >
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={user?.picture} alt={user?.name} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                      {getInitials(user?.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
+                {status === "loading" ? (
+                  <Skeleton className="w-9 h-9 rounded-full" />
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full cursor-pointer"
+                  >
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage
+                        src={session?.user?.image || ""}
+                        alt={session?.user?.name || "User"}
+                      />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                        {getInitials(session?.user?.name || "")}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                )}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-2 py-1.5">
-                  <p className="font-medium truncate">{user?.name}</p>
+                  <p className="font-medium truncate">{session?.user?.name}</p>
                   <p className="text-sm text-muted-foreground truncate">
-                    {user?.email}
+                    {session?.user?.email}
                   </p>
                 </div>
                 <DropdownMenuSeparator />
@@ -162,7 +169,7 @@ export default function Navbar() {
                 </div>
 
                 <DropdownMenuItem
-                  //   onClick={resetWallet}
+                  onClick={resetWallet}
                   className="text-amber-500 focus:text-amber-500 cursor-pointer font-medium"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
@@ -170,7 +177,7 @@ export default function Navbar() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  //   onClick={logout}
+                  onClick={() => signOut()}
                   className="text-destructive focus:text-destructive cursor-pointer font-medium"
                 >
                   <LogOut className="w-4 h-4 mr-2" />

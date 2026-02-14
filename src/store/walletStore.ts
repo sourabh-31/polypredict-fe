@@ -1,8 +1,9 @@
+import { Event, Market } from "@/types/api.type";
 import { create } from "zustand";
 
-const INITIAL_BALANCE = 1000;
+export const INITIAL_BALANCE = 1000;
 
-type Position = {
+export type Position = {
   id: string;
   eventId: string;
   eventTitle: string;
@@ -20,26 +21,36 @@ type Position = {
   currentPrice?: number;
 };
 
+type MarketPrice = {
+  yes: number;
+  no: number;
+};
+
+export type MarketPrices = Record<string, MarketPrice>;
+
 type WalletState = {
   balance: number;
   positions: Position[];
   userId: string | null;
 
   initializeWallet: (userId: string | null) => void;
+
   buyPosition: (
-    event: any,
-    market: any,
+    event: Event,
+    market: Market,
     side: "Yes" | "No",
     price: number,
     amount: number,
   ) => { success: boolean; error?: string };
-  updatePositionPrices: (marketPrices: any) => void;
+
+  updatePositionPrices: (marketPrices: MarketPrices) => void;
+
   resetWallet: () => void;
+
   calculatePnL: (position: Position) => {
     value: number;
     percentage: number;
   };
-  groupedPositions: () => any[];
 };
 
 export const useWalletStore = create<WalletState>((set, get) => ({
@@ -47,8 +58,9 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   positions: [],
   userId: null,
 
-  // 🔐 Storage Key Helper
   initializeWallet: (userId) => {
+    if (typeof window === "undefined") return;
+
     const keyPrefix = userId ? `polypredict_${userId}_` : `polypredict_guest_`;
 
     const savedBalance = localStorage.getItem(keyPrefix + "balance");
@@ -57,12 +69,18 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     set({
       userId,
       balance: savedBalance ? parseFloat(savedBalance) : INITIAL_BALANCE,
-      positions: savedPositions ? JSON.parse(savedPositions) : [],
+      positions: savedPositions
+        ? (JSON.parse(savedPositions) as Position[])
+        : [],
     });
   },
 
   buyPosition: (event, market, side, price, amount) => {
     const { balance, positions, userId } = get();
+
+    if (amount <= 0) {
+      return { success: false, error: "Invalid amount" };
+    }
 
     if (amount > balance) {
       return { success: false, error: "Insufficient balance" };
@@ -74,10 +92,11 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       (p) => p.marketId === market.id && p.side === side,
     );
 
-    let updatedPositions = [...positions];
+    let updatedPositions: Position[] = [...positions];
 
     if (existingIndex >= 0) {
       const existing = updatedPositions[existingIndex];
+
       const totalQuantity = existing.quantity + quantity;
       const totalInvested = existing.totalInvested + amount;
       const avgPrice = totalInvested / totalQuantity;
@@ -110,14 +129,15 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
     const newBalance = balance - amount;
 
-    // persist
     const prefix = userId ? `polypredict_${userId}_` : `polypredict_guest_`;
 
-    localStorage.setItem(prefix + "balance", newBalance.toString());
-    localStorage.setItem(
-      prefix + "positions",
-      JSON.stringify(updatedPositions),
-    );
+    if (typeof window !== "undefined") {
+      localStorage.setItem(prefix + "balance", newBalance.toString());
+      localStorage.setItem(
+        prefix + "positions",
+        JSON.stringify(updatedPositions),
+      );
+    }
 
     set({
       balance: newBalance,
@@ -128,26 +148,28 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
   updatePositionPrices: (marketPrices) => {
-    const { positions, userId, balance } = get();
+    const { positions, userId } = get();
 
-    const updated = positions.map((pos) => {
+    const updated: Position[] = positions.map((pos) => {
       const currentPrice = marketPrices[pos.marketId];
-      if (currentPrice) {
-        const priceForSide =
-          pos.side === "Yes" ? currentPrice.yes : currentPrice.no;
 
-        return {
-          ...pos,
-          currentPrice: priceForSide,
-          lastUpdated: new Date().toISOString(),
-        };
-      }
-      return pos;
+      if (!currentPrice) return pos;
+
+      const priceForSide =
+        pos.side === "Yes" ? currentPrice.yes : currentPrice.no;
+
+      return {
+        ...pos,
+        currentPrice: priceForSide,
+        lastUpdated: new Date().toISOString(),
+      };
     });
 
     const prefix = userId ? `polypredict_${userId}_` : `polypredict_guest_`;
 
-    localStorage.setItem(prefix + "positions", JSON.stringify(updated));
+    if (typeof window !== "undefined") {
+      localStorage.setItem(prefix + "positions", JSON.stringify(updated));
+    }
 
     set({ positions: updated });
   },
@@ -157,8 +179,10 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
     const prefix = userId ? `polypredict_${userId}_` : `polypredict_guest_`;
 
-    localStorage.removeItem(prefix + "balance");
-    localStorage.removeItem(prefix + "positions");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(prefix + "balance");
+      localStorage.removeItem(prefix + "positions");
+    }
 
     set({
       balance: INITIAL_BALANCE,
@@ -167,35 +191,21 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
   calculatePnL: (position) => {
-    if (!position.currentPrice) return { value: 0, percentage: 0 };
+    if (position.currentPrice === undefined) {
+      return { value: 0, percentage: 0 };
+    }
 
     const currentValue = position.quantity * position.currentPrice;
     const pnlValue = currentValue - position.totalInvested;
-    const pnlPercentage = (pnlValue / position.totalInvested) * 100;
+
+    const pnlPercentage =
+      position.totalInvested > 0
+        ? (pnlValue / position.totalInvested) * 100
+        : 0;
 
     return {
       value: pnlValue,
       percentage: pnlPercentage,
     };
-  },
-
-  groupedPositions: () => {
-    const { positions } = get();
-
-    const grouped = positions.reduce((acc: any, pos) => {
-      if (!acc[pos.eventId]) {
-        acc[pos.eventId] = {
-          eventId: pos.eventId,
-          eventTitle: pos.eventTitle,
-          eventImage: pos.eventImage,
-          eventEndDate: pos.eventEndDate,
-          positions: [],
-        };
-      }
-      acc[pos.eventId].positions.push(pos);
-      return acc;
-    }, {});
-
-    return Object.values(grouped);
   },
 }));

@@ -1,7 +1,12 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useEvents } from "@/hooks/useEvents";
+import { extractMarketPrices } from "@/lib/utils";
+import { Position, useWalletStore } from "@/store/walletStore";
 import { format } from "date-fns";
 import {
   ArrowRight,
@@ -13,116 +18,94 @@ import {
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback } from "react";
+import { useEffect, useMemo } from "react";
 
-export const groupedPositions = [
-  {
-    eventId: "event-1",
-    eventTitle: "Democratic Presidential Nominee 2028",
-    eventImage: "https://picsum.photos/200/200?1",
-    eventEndDate: "2028-11-07",
-    positions: [
-      {
-        id: "pos-1",
-        marketTitle: "Stephen A. Smith",
-        side: "Yes",
-        quantity: 800,
-        avgPrice: 0.01,
-        totalInvested: 8.0,
-        currentPrice: 0.03,
-      },
-      {
-        id: "pos-2",
-        marketTitle: "Gavin Newsom",
-        side: "No",
-        quantity: 150,
-        avgPrice: 0.42,
-        totalInvested: 63.0,
-        currentPrice: 0.37,
-      },
-    ],
-  },
-  {
-    eventId: "event-2",
-    eventTitle: "Who will Trump nominate as Fed Chair?",
-    eventImage: "https://picsum.photos/200/200?2",
-    eventEndDate: "2026-12-31",
-    positions: [
-      {
-        id: "pos-3",
-        marketTitle: "Kevin Hassett",
-        side: "Yes",
-        quantity: 400,
-        avgPrice: 0.25,
-        totalInvested: 100.0,
-        currentPrice: 0.22,
-      },
-    ],
-  },
-  {
-    eventId: "event-3",
-    eventTitle: "US strikes Iran by June 2026?",
-    eventImage: "https://picsum.photos/200/200?3",
-    eventEndDate: "2026-06-30",
-    positions: [
-      {
-        id: "pos-4",
-        marketTitle: "Yes before June",
-        side: "Yes",
-        quantity: 50,
-        avgPrice: 0.6,
-        totalInvested: 30.0,
-        currentPrice: 0.72,
-      },
-      {
-        id: "pos-5",
-        marketTitle: "No strike",
-        side: "No",
-        quantity: 40,
-        avgPrice: 0.35,
-        totalInvested: 14.0,
-        currentPrice: 0.28,
-      },
-    ],
-  },
-];
+type GroupedPosition = {
+  eventId: string;
+  eventTitle: string;
+  eventImage?: string;
+  eventEndDate?: string;
+  positions: Position[];
+};
 
 export default function Positions() {
-  const totalInvested = 1250.0;
-  const totalPnL = 150.0;
-  const totalPnLPercentage = (totalPnL / totalInvested) * 100;
+  const positions = useWalletStore((state) => state.positions);
+  const calculatePnL = useWalletStore((state) => state.calculatePnL);
+  const updatePositionPrices = useWalletStore(
+    (state) => state.updatePositionPrices,
+  );
 
-  const calculatePnL = useCallback((position) => {
-    if (!position.currentPrice) return { value: 0, percentage: 0 };
-    const currentValue = position.quantity * position.currentPrice;
-    const pnlValue = currentValue - position.totalInvested;
-    const pnlPercentage = (pnlValue / position.totalInvested) * 100;
-    return { value: pnlValue, percentage: pnlPercentage };
-  }, []);
+  const { data: events } = useEvents();
+
+  // Grouping positions by event to display them together in the UI. This allows us to show all positions related to a specific event under one card, making it easier for users to see their exposure and performance for each event at a glance.
+  const groupedPositions = useMemo(() => {
+    const grouped: Record<string, GroupedPosition> = {};
+
+    for (const pos of positions) {
+      if (!grouped[pos.eventId]) {
+        grouped[pos.eventId] = {
+          eventId: pos.eventId,
+          eventTitle: pos.eventTitle,
+          eventImage: pos.eventImage,
+          eventEndDate: pos.eventEndDate,
+          positions: [],
+        };
+      }
+
+      grouped[pos.eventId].positions.push(pos);
+    }
+
+    return Object.values(grouped);
+  }, [positions]);
+
+  // Calculate total portfolio value
+  const totalInvested = groupedPositions.reduce(
+    (sum, group) =>
+      sum + group.positions.reduce((s, p) => s + p.totalInvested, 0),
+    0,
+  );
+
+  const totalPnL = groupedPositions.reduce(
+    (sum, group) =>
+      sum + group.positions.reduce((s, p) => s + calculatePnL(p).value, 0),
+    0,
+  );
+
+  const totalPnLPercentage =
+    totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
+
+  // Update position prices whenever events data changes. This ensures that the unrealized P&L displayed to the user is always based on the latest market prices extracted from the events data.
+  useEffect(() => {
+    if (!events) return;
+    updatePositionPrices(extractMarketPrices(events));
+  }, [events]);
+
+  if (groupedPositions.length === 0)
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+              <Briefcase className="w-10 h-10 text-muted-foreground" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">No Positions Yet</h2>
+            <p className="text-muted-foreground mb-8 max-w-sm leading-snug">
+              Start trading to see your positions here. Head to the dashboard to
+              explore markets.
+            </p>
+            <Link href="/dashboard">
+              <Button size="lg">
+                Go to Dashboard
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
 
   return (
-    // <div className="min-h-screen bg-background">
-    //   <div className="container mx-auto px-4 py-8 max-w-4xl">
-    //     <div className="flex flex-col items-center justify-center py-24 text-center">
-    //       <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
-    //         <Briefcase className="w-10 h-10 text-muted-foreground" />
-    //       </div>
-    //       <h2 className="text-2xl font-bold mb-2">No Positions Yet</h2>
-    //       <p className="text-muted-foreground mb-8 max-w-sm leading-snug">
-    //         Start trading to see your positions here. Head to the dashboard to
-    //         explore markets.
-    //       </p>
-    //       <Link href="/dashboard">
-    //         <Button size="lg" data-testid="go-to-dashboard-button">
-    //           Go to Dashboard
-    //           <ArrowRight className="w-4 h-4 ml-2" />
-    //         </Button>
-    //       </Link>
-    //     </div>
-    //   </div>
-    // </div>
-
-    <div className="min-h-screen bg-background" data-testid="positions-page">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-10 lg:max-w-5xl">
         {/* Header */}
 
@@ -200,7 +183,7 @@ export default function Positions() {
 
         {/* Positions List */}
 
-        <div className="space-y-6" data-testid="positions-list">
+        <div className="space-y-6">
           {groupedPositions.map((group) => (
             <Card
               key={group.eventId}
@@ -263,7 +246,7 @@ export default function Positions() {
 
                             <span className="text-sm text-muted-foreground tabular-nums">
                               {position.quantity.toFixed(2)} shares @ $
-                              {position.avgPrice.toFixed(2)}
+                              {position.avgPrice.toFixed(4)}
                             </span>
                           </div>
                         </div>
@@ -284,7 +267,7 @@ export default function Positions() {
                               Current
                             </p>
                             <p className="font-semibold">
-                              ${position.currentPrice?.toFixed(2)}
+                              ${position.currentPrice?.toFixed(4)}
                             </p>
                           </div>
 

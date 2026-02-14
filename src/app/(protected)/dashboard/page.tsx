@@ -2,14 +2,21 @@
 
 import EventCard from "@/components/shared/EventCard";
 import { EventCardSkeleton } from "@/components/shared/EventCardSkeleton";
+import { TradeModal } from "@/components/shared/TradeModal";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useEvents } from "@/hooks/useEvents";
+import { Event, Market, MarketWithSide } from "@/types/api.type";
 import { RefreshCw, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function Dashboard() {
   const [spinning, setSpinning] = useState(false);
+
+  const [tradeModalOpen, setTradeModalOpen] = useState(false);
+  const [selectedMarket, setSelectedMarket] = useState<MarketWithSide | null>(
+    null,
+  );
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   // Events hook
   const {
@@ -19,6 +26,22 @@ export default function Dashboard() {
     isRefetching: isRefetchingEvents,
     isError,
   } = useEvents();
+
+  const handleTradeClick = (
+    event: Event,
+    market: Market,
+    side: "Yes" | "No",
+  ) => {
+    setSelectedEvent(event);
+    setSelectedMarket({ ...market, selectedSide: side }); // Preselect the side in the modal based on the button clicked by the user
+    setTradeModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setTradeModalOpen(false);
+    setSelectedMarket(null);
+    setSelectedEvent(null);
+  };
 
   // Intentional delay for spinner animation to show properly on fast fetches and also to prevent multiple quick clicks by the user (debouncing)
   useEffect(() => {
@@ -101,12 +124,24 @@ export default function Dashboard() {
             // Event cards in a grid layout
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {eventsData.map((event) => (
-                <EventCard key={event.id} event={event} />
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onTradeClick={handleTradeClick}
+                />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Trade Modal */}
+      <TradeModal
+        open={tradeModalOpen}
+        onClose={handleCloseModal}
+        event={selectedEvent}
+        market={selectedMarket}
+      />
     </div>
   );
 }

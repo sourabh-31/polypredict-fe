@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
@@ -19,12 +18,24 @@ import {
   DollarSign,
   ArrowRight,
   Check,
-  X,
 } from "lucide-react";
+import { Event, MarketWithSide } from "@/types/api.type";
+
+interface TradeModalProps {
+  open: boolean;
+  onClose: () => void;
+  event: Event | null;
+  market: MarketWithSide | null;
+}
 
 const PRESET_AMOUNTS = [10, 25, 50, 100];
 
-export const TradeModal = ({ open, onClose, event, market }) => {
+export const TradeModal = ({
+  open,
+  onClose,
+  event,
+  market,
+}: TradeModalProps) => {
   const balance = useWalletStore((s) => s.balance);
   const buyPosition = useWalletStore((s) => s.buyPosition);
   const [amount, setAmount] = useState(10);
@@ -56,7 +67,7 @@ export const TradeModal = ({ open, onClose, event, market }) => {
 
   const currentPrice = side === "Yes" ? yesPrice : noPrice;
   const shares = amount / currentPrice;
-  const potentialReturn = shares; // Each share pays $1 if correct
+  const potentialReturn = shares;
   const potentialProfit = potentialReturn - amount;
   const roi = (potentialProfit / amount) * 100;
 
@@ -77,7 +88,6 @@ export const TradeModal = ({ open, onClose, event, market }) => {
       setShowSuccess(true);
       toast.success(
         <div className="flex items-center gap-2">
-          <Check className="w-4 h-4 text-emerald-500" />
           <span>
             Bought {shares.toFixed(2)} {side} shares for ${amount.toFixed(2)}
           </span>
@@ -96,11 +106,12 @@ export const TradeModal = ({ open, onClose, event, market }) => {
     setIsSubmitting(false);
   };
 
+  // Get market title with fallback
   const marketTitle = market.groupItemTitle || market.question || "Unknown";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md" data-testid="trade-modal">
+      <DialogContent className="sm:max-w-md">
         {showSuccess ? (
           // Success Animation
           <div className="py-12 text-center animate-in fade-in zoom-in duration-300">
@@ -143,7 +154,6 @@ export const TradeModal = ({ open, onClose, event, market }) => {
                         ? "bg-emerald-500 hover:bg-emerald-600 border-emerald-500"
                         : "border-emerald-500/30 hover:border-emerald-500"
                     }`}
-                    data-testid="select-yes"
                   >
                     <TrendingUp
                       className={`w-5 h-5 ${side === "Yes" ? "text-white" : "text-emerald-500"}`}
@@ -153,7 +163,7 @@ export const TradeModal = ({ open, onClose, event, market }) => {
                         side === "Yes" ? "text-white" : "text-emerald-500"
                       }
                     >
-                      Yes • {(yesPrice * 100).toFixed(0)}¢
+                      Yes • {(yesPrice * 100).toFixed(2)}¢
                     </span>
                   </Button>
                   <Button
@@ -164,7 +174,6 @@ export const TradeModal = ({ open, onClose, event, market }) => {
                         ? "bg-red-500 hover:bg-red-600 border-red-500"
                         : "border-red-500/30 hover:border-red-500"
                     }`}
-                    data-testid="select-no"
                   >
                     <TrendingDown
                       className={`w-5 h-5 ${side === "No" ? "text-white" : "text-red-500"}`}
@@ -172,7 +181,7 @@ export const TradeModal = ({ open, onClose, event, market }) => {
                     <span
                       className={side === "No" ? "text-white" : "text-red-500"}
                     >
-                      No • {(noPrice * 100).toFixed(0)}¢
+                      No • {(noPrice * 100).toFixed(2)}¢
                     </span>
                   </Button>
                 </div>
@@ -189,7 +198,6 @@ export const TradeModal = ({ open, onClose, event, market }) => {
                       size="sm"
                       onClick={() => setAmount(preset)}
                       className="flex-1"
-                      data-testid={`amount-${preset}`}
                     >
                       ${preset}
                     </Button>
@@ -206,7 +214,6 @@ export const TradeModal = ({ open, onClose, event, market }) => {
                       setAmount(Math.max(0, parseFloat(e.target.value) || 0))
                     }
                     className="pl-8"
-                    data-testid="custom-amount-input"
                   />
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -226,7 +233,7 @@ export const TradeModal = ({ open, onClose, event, market }) => {
               <div className="space-y-2 p-4 rounded-lg bg-muted/50">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Price per share</span>
-                  <span>${currentPrice.toFixed(2)}</span>
+                  <span>${currentPrice}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shares</span>
@@ -260,7 +267,6 @@ export const TradeModal = ({ open, onClose, event, market }) => {
                     ? "bg-emerald-500 hover:bg-emerald-600"
                     : "bg-red-500 hover:bg-red-600"
                 }`}
-                data-testid="confirm-trade-button"
               >
                 {isSubmitting ? (
                   <span className="animate-pulse">Processing...</span>
