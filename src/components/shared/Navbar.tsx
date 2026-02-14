@@ -35,6 +35,7 @@ export default function Navbar() {
 
   const balance = useWalletStore((state) => state.balance);
   const resetWallet = useWalletStore((state) => state.resetWallet);
+  const hasHydrated = useWalletStore((state) => state.hasHydrated);
 
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -91,9 +92,14 @@ export default function Navbar() {
             {/* Wallet Balance */}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border border-border">
               <Wallet className="w-4 h-4 text-primary" />
-              <span className="font-semibold text-sm">
-                ${balance.toFixed(2)}
-              </span>
+
+              {!hasHydrated ? (
+                <Skeleton className="h-5 w-15" />
+              ) : (
+                <span className="font-semibold text-sm">
+                  ${balance.toFixed(2)}
+                </span>
+              )}
             </div>
 
             {/* Theme Toggle */}

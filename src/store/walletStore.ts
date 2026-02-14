@@ -33,6 +33,9 @@ type WalletState = {
   positions: Position[];
   userId: string | null;
 
+  hasHydrated: boolean;
+  setHasHydrated: (value: boolean) => void;
+
   initializeWallet: (userId: string | null) => void;
 
   buyPosition: (
@@ -58,6 +61,9 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   positions: [],
   userId: null,
 
+  hasHydrated: false,
+  setHasHydrated: (value) => set({ hasHydrated: value }),
+
   initializeWallet: (userId) => {
     if (typeof window === "undefined") return;
 
@@ -73,6 +79,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         ? (JSON.parse(savedPositions) as Position[])
         : [],
     });
+
+    set({ hasHydrated: true });
   },
 
   buyPosition: (event, market, side, price, amount) => {

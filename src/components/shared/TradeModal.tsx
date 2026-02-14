@@ -69,7 +69,7 @@ export const TradeModal = ({
   const shares = amount / currentPrice;
   const potentialReturn = shares;
   const potentialProfit = potentialReturn - amount;
-  const roi = (potentialProfit / amount) * 100;
+  const roi = amount > 0 ? (potentialProfit / amount) * 100 : 0;
 
   const canAfford = amount <= balance;
   const isValidAmount = amount > 0;
