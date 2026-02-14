@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   title: "PolyPredict",
   description:
     "A simplified prediction market dashboard built with Next.js and TypeScript. Users can simulate trades, track positions, and monitor live market prices from Polymarket.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
