@@ -53,7 +53,7 @@ pnpm install
 Run the server:
 
 ```bash
-pnpm install
+pnpm run dev
 ```
 
 ## 🌐 CORS Issue & How It Was Solved
@@ -113,3 +113,29 @@ fetch("/api/events");
 - Sensitive API keys (if needed) remain secure on the server
 
 This approach follows a **production-grade architecture pattern** commonly used when integrating third-party APIs in modern web applications.
+
+---
+
+### 🎨 Design Decisions
+
+- **Light & Dark Mode Support** — Implemented using shadcn/ui's slate theme for seamless theming with consistent color tokens across both modes. The slate palette provides excellent contrast ratios and readability in both environments.
+
+- **Space Grotesk Typography** — Selected for its modern geometric design and excellent legibility at all sizes. This open-source typeface brings a contemporary, tech-forward aesthetic while maintaining professional readability for data-heavy interfaces.
+
+- **Component-First Architecture** — Built entirely with shadcn/ui components for consistency, accessibility (ARIA-compliant), and maintainability. This approach ensures a cohesive design system throughout the application.
+
+- **Responsive & Mobile-Optimized** — Every component adapts fluidly across devices, with careful attention to touch targets, spacing, and information hierarchy on smaller screens.
+
+---
+
+### 🔮 Future Improvements
+
+- **Expanded Event Categories & Advanced Filtering** — Currently focused on political events due to limited API topics (5 categories). Future iterations would include sports, entertainment, economics, and custom user-created markets with comprehensive search, multi-filter options, and category-based navigation.
+
+- **Infinite Scroll + List Virtualization** — As the positions tab scales with more user activity, implementing infinite loading with virtualization libraries (e.g., `@tanstack/react-virtual` or `react-window`) would dramatically improve performance by rendering only visible items in the DOM.
+
+- **Precision Number Handling** — Integrate `decimal.js` or `bignumber.js` for financial calculations. Current implementation displays up to 4 decimal points, which suffices for this demo but production apps require arbitrary-precision arithmetic to prevent floating-point errors in monetary transactions.
+
+- **Real-time WebSocket Integration** — Replace polling with WebSocket connections for live market updates, enabling instant price changes, order book updates, and position notifications without repeated HTTP requests.
+
+- **Advanced Analytics Dashboard** — Add portfolio performance tracking, profit/loss graphs, historical trend analysis, and market sentiment indicators to give users deeper insights into their trading patterns.
